@@ -13,4 +13,12 @@ public class WarmupTest extends BaseWarmupTest {
         Assertions.assertTrue(warmup1.sleepIn(true,true));
 
     }
+
+    @Test
+    void monkeyTrouble(){
+        Assertions.assertTrue(warmup1.monkeyTrouble(false,true));
+        Assertions.assertTrue(warmup1.monkeyTrouble(false,false));
+        Assertions.assertFalse(warmup1.monkeyTrouble(true,false));
+        Assertions.assertFalse(warmup1.monkeyTrouble(false,true));
+    }
 }
