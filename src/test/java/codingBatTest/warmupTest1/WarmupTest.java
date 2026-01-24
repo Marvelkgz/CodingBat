@@ -11,6 +11,12 @@ public class WarmupTest extends BaseWarmupTest {
         Assertions.assertFalse(warmup1.sleepIn(true,false));
         Assertions.assertTrue(warmup1.sleepIn(false,true));
         Assertions.assertTrue(warmup1.sleepIn(true,true));
+    }
 
+    @Test
+    void sumDouble(){
+        Assertions.assertEquals(warmup1.sumDouble(2,2),8);
+        Assertions.assertEquals(warmup1.sumDouble(1,2),3);
+        Assertions.assertEquals(warmup1.sumDouble(3,3),12);
     }
 }
