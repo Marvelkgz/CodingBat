@@ -3,7 +3,7 @@ package codingBatTest.warmupTest1;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class WarmupTest1 extends BaseTest {
+public class WarmupTest extends BaseWarmupTest {
 
     @Test
     void sleepIn(){
