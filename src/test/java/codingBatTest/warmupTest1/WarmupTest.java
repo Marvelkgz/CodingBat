@@ -25,4 +25,12 @@ void diff21(){
         Assertions.assertEquals(warmup1.diff21(19),2);
         Assertions.assertEquals(warmup1.diff21(23),4);
     }
+
+    @Test
+    void parrotTrouble(){
+        Assertions.assertTrue(warmup1.parrotTrouble(true,6));
+        Assertions.assertFalse(warmup1.parrotTrouble(false,8));
+        Assertions.assertTrue(warmup1.parrotTrouble(true,7));
+        Assertions.assertFalse(warmup1.parrotTrouble(false,23));
+    }
 }
