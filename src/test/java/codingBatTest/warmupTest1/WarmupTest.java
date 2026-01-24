@@ -19,4 +19,10 @@ public class WarmupTest extends BaseWarmupTest {
         Assertions.assertEquals(warmup1.sumDouble(1,2),3);
         Assertions.assertEquals(warmup1.sumDouble(3,3),12);
     }
+
+    @Test
+void diff21(){
+        Assertions.assertEquals(warmup1.diff21(19),2);
+        Assertions.assertEquals(warmup1.diff21(23),4);
+    }
 }
