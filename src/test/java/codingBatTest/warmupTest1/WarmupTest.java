@@ -50,4 +50,12 @@ void diff21(){
         assertTrue(warmup1.posNeg(-2,-1,true));
         assertFalse(warmup1.posNeg(1,-1,true));
     }
+
+    @Test
+    void notString(){
+        assertEquals(warmup1.notString("candy"),"not candy");
+        assertEquals(warmup1.notString("x"),"not x");
+        assertEquals(warmup1.notString("not"),"not not");
+        assertEquals(warmup1.notString("no"),"not no");
+    }
 }
