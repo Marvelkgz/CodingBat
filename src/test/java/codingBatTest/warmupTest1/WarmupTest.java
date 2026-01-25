@@ -58,4 +58,31 @@ void diff21(){
         assertEquals(warmup1.notString("not"),"not not");
         assertEquals(warmup1.notString("no"),"not no");
     }
+
+
+   @Test
+    void nearHundred(){
+        assertTrue(warmup1.nearHundred(93));
+        assertTrue(warmup1.nearHundred(110));
+        assertFalse(warmup1.nearHundred(111));
+        assertFalse(warmup1.nearHundred(121));
+   }
+    @Test
+    void missingChar(){
+        assertEquals(warmup1.missingChar("kitten",1),"ktten");
+        assertEquals(warmup1.missingChar("kitten",0),"itten");
+        assertEquals(warmup1.missingChar("kitten",4),"kittn");
+        assertEquals(warmup1.missingChar("Hi",0),"i");
+        assertEquals(warmup1.missingChar("code",0),"ode");
+    }
+
+    @Test
+    void frontBack(){
+        assertEquals(warmup1.frontBack("code"),"eodc");
+        assertEquals(warmup1.frontBack("a"),"a");
+        assertEquals(warmup1.frontBack("ab"),"ba");
+        assertEquals(warmup1.frontBack(""),"");
+        assertEquals(warmup1.frontBack("Chocolate"),"ehocolatC");
+        assertEquals(warmup1.frontBack("hello"),"oellh");
+    }
 }
