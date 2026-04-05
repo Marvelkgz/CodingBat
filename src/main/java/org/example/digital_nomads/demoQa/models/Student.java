@@ -1,0 +1,26 @@
+package org.example.digital_nomads.demoQa.models;
+
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Getter
+@Setter
+@ToString
+@EqualsAndHashCode
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class Student {
+    String firstName;
+    int age;
+    String lastName;
+    String city;
+    String gender;
+    String subject;
+
+    public static void main(String[] args) {
+        Student student = Student.builder().firstName("Bob").age(23).build();
+        System.out.println(student);
+    }
+}
