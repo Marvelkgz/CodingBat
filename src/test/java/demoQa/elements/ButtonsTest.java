@@ -1,7 +1,6 @@
 package demoQa.elements;
 
 import demoQa.BaseDemoQaTest;
-import org.example.digital_nomads.demoQa.pages.ButtonPage;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 

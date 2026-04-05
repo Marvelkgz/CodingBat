@@ -1,10 +1,9 @@
 package org.example.digital_nomads.demoQa.gorestAPI.controller;
 
-
+import io.restassured.response.Response;
 import org.example.digital_nomads.demoQa.gorestAPI.HttpRequest;
 import org.example.digital_nomads.demoQa.gorestAPI.endPoint.EndPoint;
-import org.example.digital_nomads.demoQa.gorestAPI.models.Post;
-import org.example.digital_nomads.demoQa.gorestAPI.models.User;
+import org.example.digital_nomads.demoQa.gorestAPI.goRestModels.User;
 
 public class UserController extends HttpRequest {
 
@@ -13,18 +12,34 @@ public class UserController extends HttpRequest {
     }
 
     public User[] getAllUsers() {
-        return super.get(getEndpoint(EndPoint.PUBLIC, EndPoint.V2, EndPoint.USERS)).as(User[].class);
+        return super.get(getEndPoint(EndPoint.PUBLIC, EndPoint.V2, EndPoint.USERS)).as(User[].class);
     }
 
-    public User createNewUser(User user) {
-        return super.post(getEndpoint(EndPoint.PUBLIC, EndPoint.V2, EndPoint.USERS), user.toJson()).as(User.class);
+    public org.example.digital_nomads.demoQa.gorestAPI.goRestModels.User createNewUser(User user) {
+        return super.post(getEndPoint(EndPoint.PUBLIC, EndPoint.V2, EndPoint.USERS), user.toJson()).as(User.class);
     }
 
-    public Post createPost(Post post) {
-        return (Post) super.post(
-                getEndpoint(EndPoint.PUBLIC, EndPoint.V2, EndPoint.USERS,
-                        String.valueOf(post.getUserId()), EndPoint.POSTS.toString()),
-                post.toJson()
-        );
+    public User getSingleUserById(Integer id) {
+        return super.get(getEndPoint(EndPoint.PUBLIC, EndPoint.V2, EndPoint.USERS, String.valueOf(id)))
+                .as(User.class);
+    }
+
+    public User partialUpdateUserDetailById(Integer id, User user) {
+        Response response = super.patch(getEndPoint(EndPoint.PUBLIC, EndPoint.V2, EndPoint.USERS, String.valueOf(id)),
+                user.toJson());
+        if (response.getStatusCode() != 200) {
+            System.out.println("ERROR: " + response.asPrettyString());
+            throw new RuntimeException("Update failed");
+        }
+        return response.as(User.class);
+    }
+
+    public User updateAllUserDetails(Integer id, User user) {
+        return super.put(getEndPoint(EndPoint.PUBLIC, EndPoint.V2, EndPoint.USERS, String.valueOf(id)), user.toJson())
+                .as(User.class);
+    }
+
+    public void deleteUser(Integer id) {
+        super.delete(getEndPoint(EndPoint.PUBLIC, EndPoint.V2, EndPoint.USERS, String.valueOf(id)));
     }
 }

@@ -1,24 +1,24 @@
-package org.example.digital_nomads.demoQa.gorestAPI.models;
+package org.example.digital_nomads.demoQa.gorestAPI.goRestModels;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @AllArgsConstructor
-@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @Builder
-@Getter
+@EqualsAndHashCode
 @Setter
+@Getter
 @ToString
-@EqualsAndHashCode(callSuper = true)
+@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonIgnoreProperties(ignoreUnknown = true)
 
 public class User extends BaseModel{
 
     Integer id;
-    String email;
     String name;
+    String email;
     String gender;
     String status;
 }

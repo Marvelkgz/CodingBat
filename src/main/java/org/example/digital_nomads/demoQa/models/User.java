@@ -2,7 +2,7 @@ package org.example.digital_nomads.demoQa.models;
 
 import java.util.Objects;
 
-public class User {
+public class User extends org.example.digital_nomads.demoQa.gorestAPI.goRestModels.User {
 
     private int id;
     private  String name;

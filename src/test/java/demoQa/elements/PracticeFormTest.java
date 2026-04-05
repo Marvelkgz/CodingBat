@@ -2,8 +2,6 @@ package demoQa.elements;
 
 import demoQa.BaseDemoQaTest;
 import org.example.digital_nomads.demoQa.models.UserPracticeForm;
-import org.example.digital_nomads.demoQa.models.UserTextBox;
-import org.example.digital_nomads.demoQa.pages.PracticeFormPage;
 import org.example.digital_nomads.demoQa.utils.RandomUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

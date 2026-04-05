@@ -1,37 +1,34 @@
 package org.example.digital_nomads.demoQa.gorestAPI.randomData;
 
 
-
-import org.example.digital_nomads.demoQa.gorestAPI.models.Post;
-import org.example.digital_nomads.demoQa.gorestAPI.models.User;
-
-import java.util.Random;
-import java.util.UUID;
+import com.github.javafaker.Faker;
+import org.example.digital_nomads.demoQa.gorestAPI.goRestModels.Post;
+import org.example.digital_nomads.demoQa.gorestAPI.goRestModels.User;
 
 public class RandomDataGenerate {
 
-    public static User createUser() {
-        String random = UUID.randomUUID().toString().substring(0, 5);
-        String[] genders = {"male", "female"};
-        String[] statuses = {"active", "inactive"};
-        Random rnd = new Random();
+    private static final Faker faker = new Faker();
 
-        return User.builder()
-                .name("User" + random)
-                .email("user" + random + "@mail.com")
-                .gender(genders[rnd.nextInt(genders.length)])
-                .status(statuses[rnd.nextInt(statuses.length)])
-                .build();
+    public static String randomName(){
+        return faker.name().fullName();
     }
 
-    public static Post createPost() {
-        String random = UUID.randomUUID().toString().substring(0, 5);
-        Random rnd = new Random();
+    public static String randomEmail(){
+        return faker.internet().emailAddress();
+    }
 
-        return Post.builder()
-                .userId(rnd.nextInt(10) + 1)
-                .title("Title " + random)
-                .body("Body " + random)
-                .build();
+    public static String randomTitle(){
+        return faker.harryPotter().book();
+    }
+    public static String randomBody(){
+        return faker.harryPotter().quote();
+    }
+
+    public static org.example.digital_nomads.demoQa.gorestAPI.goRestModels.User createRandomUser(){
+        return User.builder().name(randomName()).email(randomEmail()).gender("female").status("active").build();
+    }
+
+    public static Post createRandomPost(){
+        return Post.builder().title(randomTitle()).body(randomBody()).build();
     }
 }

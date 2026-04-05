@@ -6,7 +6,7 @@ import org.openqa.selenium.WebElement;
 
 import java.util.List;
 
-public class AmazonTest extends BaseDemoQaTest{
+public class AmazonTest extends BaseDemoQaTest {
 
     @Test
     void amazon() throws InterruptedException {

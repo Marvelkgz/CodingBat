@@ -1,48 +1,86 @@
 package api;
 
-import org.assertj.core.api.Assertions;
-import org.example.digital_nomads.demoQa.gorestAPI.models.Post;
-import org.example.digital_nomads.demoQa.gorestAPI.models.User;
-import org.example.digital_nomads.demoQa.gorestAPI.randomData.RandomDataGenerate;
+import lombok.extern.slf4j.Slf4j;
+
+import org.example.digital_nomads.demoQa.gorestAPI.config.CsvUtils;
+import org.example.digital_nomads.demoQa.gorestAPI.goRestModels.Comment;
+import org.example.digital_nomads.demoQa.gorestAPI.goRestModels.Post;
+import org.example.digital_nomads.demoQa.gorestAPI.goRestModels.ToDo;
+import org.example.digital_nomads.demoQa.gorestAPI.goRestModels.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
 @Tag("API")
-public class EndToEndTest extends BaseUserTest{
+@Slf4j
+public class EndToEndTest extends BaseGorestTest {
+
+    private static final String CSV_PATH = "src/main/resources/users_data.csv";
 
     @Test
-    @DisplayName("E2E: ctaete user -> create post -> create coment -> create todo -> delete user")
-    void shouldPerformFullUserWorkflowFromCreationToDelete(){
-        User user = RandomDataGenerate.createUser();
-        User createUser = userController.createNewUser(user);
-        Integer id = createUser.getId();
-        Assertions.assertThat(userController.getResponse().getStatusCode())
-                .as("Actual and expected status code are mismatch")
-                .isEqualTo(201);
+    @DisplayName("E2E: create user → create post → create comment → create todo → delete user")
+    void shouldPerformFullUserWorkflowFromCreationToDeletion() {
 
-        Assertions.assertThat(createUser)
-                .as("Response body mismatch")
-                .usingRecursiveComparison()
-                .ignoringFields("id")
-                .isEqualTo(user);
+        User user = randomDataGenerate.createRandomUser();
+        User createdUser = userController.createNewUser(user);
+        Integer id = createdUser.getId();
 
-        Assertions.assertThat(userController.getResponse().getTime()).
-                as("More than 1 min").
-                isLessThan(5000);
+        Post post = randomDataGenerate.createRandomPost();
+        Post createdPost = postController.createUserPost(post, id);
+        Integer post_id = createdPost.getId();
 
-        Assertions.assertThat(userController.getResponse().getHeader("x-frame-options")).
-                as("is not SAMEORIGIN").
-                isEqualTo("SAMEORIGIN");
+        Comment comment = Comment.builder()
+                .name(createdUser.getName())
+                .email(createdUser.getEmail())
+                .body(randomDataGenerate.randomBody())
+                .build();
+        commentController.createUserComments(comment, post_id);
 
-        Assertions.assertThat(userController.getResponse().asByteArray().length).
-                as("Response size should be greater than 0").
-                isGreaterThan(0);
+        ToDo toDo = ToDo.builder()
+                .title(randomDataGenerate.randomTitle())
+                .due_on("10:00 am")
+                .status("pending").build();
+        toDoController.createUserToDo(toDo, id);
+    }
 
-        Assertions.assertThat(createUser.getId()).as("ID is not NULL").
-                isNotEqualTo(null);
+    @Test
+    void exportAllUsersToCsv() {
+        List<User> users = Arrays.asList(userController.getAllUsers());
+        CsvUtils.writeUsersToCsv(users, CSV_PATH);
+    }
 
-        Post post = RandomDataGenerate.createPost();
+    @Test
+    void shouldGetRandomUserFromCsv() {
+        // взять рандомного пользователя целиком
+        User randomUser = CsvUtils.getRandomUserFromCsv(CSV_PATH);
+        Integer randomId = randomUser.getId();
 
+        // работаем с рандомным id
+        User userById = userController.getSingleUserById(randomId);
+        assertThat(userController.getResponse().statusCode()).isEqualTo(200);
+        assertThat(userById.getId()).isEqualTo(randomId);
+    }
 
+    @Test
+    void shouldGetAllUsersFromCsvAndPickRandom() {
+        // взять всех и поработать со списком
+        List<User> users = CsvUtils.readUsersFromCsv(CSV_PATH);
+
+        // рандомный id
+        Integer randomId = users.get(new Random().nextInt(users.size())).getId();
+
+        // все email-ы
+        List<String> emails = users.stream().map(User::getEmail).toList();
+
+        // все id-шки
+        List<Integer> ids = users.stream().map(User::getId).toList();
+
+        log.info("All ids: {}", ids);
+        log.info("Random id picked: {}", randomId);
     }
 }

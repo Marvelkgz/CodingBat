@@ -1,20 +1,26 @@
 package api;
-
 import org.assertj.core.api.Assertions;
-import org.example.digital_nomads.demoQa.gorestAPI.models.User;
-import org.example.digital_nomads.demoQa.gorestAPI.randomData.RandomDataGenerate;
+import org.example.digital_nomads.demoQa.gorestAPI.goRestModels.Comment;
+import org.example.digital_nomads.demoQa.gorestAPI.goRestModels.Post;
+import org.example.digital_nomads.demoQa.gorestAPI.goRestModels.ToDo;
+import org.example.digital_nomads.demoQa.gorestAPI.goRestModels.User;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 @Tag("API")
-public class UsersTest extends BaseUserTest{
+public class UsersTest extends BaseGorestTest{
+
+    Integer idishka = 8421831;
+    Integer newIdishka = 8421832;
+    Integer post_id = 275331;
 
     @Test
-    void createUser(){
+    void performFullCrudOperationsForUserTest() {
         userController.getAllUsers();
 
 
-        User user = RandomDataGenerate.createUser();
+        User user = randomDataGenerate.createRandomUser();
         User actualUser = userController.createNewUser(user);
         Integer id = actualUser.getId();
         Assertions.assertThat(userController.getResponse().getStatusCode())
@@ -27,27 +33,63 @@ public class UsersTest extends BaseUserTest{
                 .ignoringFields("id")
                 .isEqualTo(user);
 
-        Assertions.assertThat(userController.getResponse().getTime()).
-                as("More than 1 min").
-                isLessThan(5000);
+        Assertions.assertThat(userController.getResponse().getTime())
+                .as("More than 1 min")
+                .isLessThan(1000);
 
-        Assertions.assertThat(userController.getResponse().getHeader("x-frame-options")).
-                as("is not SAMEORIGIN").
-                isEqualTo("SAMEORIGIN");
+        Assertions.assertThat(userController.getResponse().getHeader("x-frame-options"))
+                .as("is not SAMEORIGIN")
+                .isEqualTo("SAMEORIGIN");
 
-        Assertions.assertThat(userController.getResponse().asByteArray().length).
-                as("Response size should be greater than 0").
-                isGreaterThan(0);
+        Assertions.assertThat(userController.getResponse().asByteArray().length)
+                .as("Response size should be greater than 0")
+                .isGreaterThan(0);
 
-        Assertions.assertThat(actualUser.getId()).as("ID is not NULL").
-                isNotEqualTo(null);
+        Assertions.assertThat(actualUser.getId()).as("ID is NULL").isNotEqualTo(null);
 
+        userController.getSingleUserById(id);
 
-//        Integer existingUserId = 5; // ID который есть в базе
-//        Post post = RandomDataGenerate.createPost(existingUserId);
-//        RandomDataGenerate postService = null;
-//        Post created = postService.createPost(post);
+        User updatedUser = User.builder().name("NewNameUpdate").build();
+        userController.partialUpdateUserDetailById(id, updatedUser);
 
+        User userAllDetailsUpdated = randomDataGenerate.createRandomUser();
+        userController.updateAllUserDetails(id, userAllDetailsUpdated);
 
+        userController.deleteUser(id);
     }
+
+    @Test
+    void postTest() {
+        System.out.println("GET ALL USER'S POSTS: " + Arrays.toString(postController.getAllUsersPosts()));
+
+        System.out.println("GET POST BY USER ID: " + Arrays.toString(postController.getUserPostsById(newIdishka)));
+
+        Post post = randomDataGenerate.createRandomPost();
+        Post createdPost = postController.createUserPost(post, newIdishka);
+        System.out.println("CREATE USER POST: " + createdPost);
+
+//        postController.deletePost(newIdishka);
+    }
+
+    @Test
+    void commentTest() {
+        System.out.println("GET USER'S COMMENTS BY ID: " + Arrays.toString(commentController
+                .getUserCommentsById(newIdishka)));
+
+        Comment comment = Comment.builder().name("Sandy Hand").email("olivia.murazik@yahoo.com")
+                .body(randomDataGenerate.randomBody()).build();
+        Comment createdComment = commentController.createUserComments(comment, post_id);
+        System.out.println("CREATE POST COMMENT: " + createdComment);
+    }
+
+    @Test
+    void toDoTest() {
+        System.out.println("GET USER'S TODOS BY ID: " + Arrays.toString(toDoController.getUserToDosById(newIdishka)));
+
+        ToDo toDo = ToDo.builder().title(randomDataGenerate.randomTitle()).due_on("5:30am").status("pending").build();
+        ToDo createdToDo = toDoController.createUserToDo(toDo, newIdishka);
+        System.out.println("CREATE POST COMMENT: " + createdToDo);
+    }
+
+
 }
