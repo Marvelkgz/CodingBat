@@ -1,11 +1,12 @@
 import demoQa.BaseDemoQaTest;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebElement;
 
 import java.util.List;
-
+@Tag("E2E")
 public class AmazonTest extends BaseDemoQaTest {
 
     @Test

@@ -53,6 +53,15 @@ tasks.register<Test>("regressionTest") {
     outputs.upToDateWhen { false }
 }
 
+tasks.register<Test>("e2eTest") {
+    useJUnitPlatform {
+        includeTags("E2E")
+    }
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    outputs.upToDateWhen { false }
+}
+
 tasks.register<Test>("smokeTest") {
     useJUnitPlatform {
         includeTags("SmokeUI")
