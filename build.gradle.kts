@@ -62,18 +62,9 @@ tasks.register<Test>("e2eTest") {
     outputs.upToDateWhen { false }
 }
 
-tasks.register<Test>("smokeTest") {
+tasks.register<Test>("smokeUIAndApiTest") {
     useJUnitPlatform {
-        includeTags("SmokeUI")
-    }
-    testClassesDirs = sourceSets["test"].output.classesDirs
-    classpath = sourceSets["test"].runtimeClasspath
-    outputs.upToDateWhen { false }
-}
-
-tasks.register<Test>("uiAndApiTest") {
-    useJUnitPlatform {
-        includeTags("UI | API")
+        includeTags("SmokeUI | API")
     }
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
