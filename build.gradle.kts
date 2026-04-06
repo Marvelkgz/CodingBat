@@ -44,6 +44,24 @@ tasks.test {
     useJUnitPlatform()
 }
 
+tasks.register<Test>("regressionTest") {
+    useJUnitPlatform {
+        includeTags("RegressionDB")
+    }
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    outputs.upToDateWhen { false }
+}
+
+tasks.register<Test>("smokeTest") {
+    useJUnitPlatform {
+        includeTags("SmokeUI")
+    }
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    outputs.upToDateWhen { false }
+}
+
 tasks.register<Test>("uiAndApiTest") {
     useJUnitPlatform {
         includeTags("UI | API")
@@ -52,4 +70,3 @@ tasks.register<Test>("uiAndApiTest") {
     classpath = sourceSets["test"].runtimeClasspath
     outputs.upToDateWhen { false }
 }
-

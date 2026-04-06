@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-@Tag("UI")
+@Tag("SmokeUI")
 public class ButtonsTest extends BaseDemoQaTest {
 
     @Test

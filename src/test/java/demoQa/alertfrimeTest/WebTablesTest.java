@@ -4,7 +4,7 @@ import org.example.digital_nomads.demoQa.models.Employee;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import java.util.List;
-@Tag("UI")
+@Tag("SmokeUI")
 public class WebTablesTest extends BaseDemoQaTest {
 
     @Test

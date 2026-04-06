@@ -3,7 +3,7 @@ package demoQa.alertfrimeTest;
 import demoQa.BaseDemoQaTest;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-@Tag("UI")
+@Tag("SmokeUI")
 public class IframeTest extends BaseDemoQaTest {
 
     @Test

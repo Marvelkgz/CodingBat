@@ -5,7 +5,7 @@ import org.example.digital_nomads.demoQa.models.UserPracticeForm;
 import org.example.digital_nomads.demoQa.utils.RandomUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-@Tag("UI")
+@Tag("SmokeUI")
 public class PracticeFormTest extends BaseDemoQaTest {
 
     @Test

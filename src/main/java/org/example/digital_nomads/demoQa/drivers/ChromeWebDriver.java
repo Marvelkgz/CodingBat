@@ -14,7 +14,7 @@ public class ChromeWebDriver {
         WebDriverManager.chromedriver().setup();                   //NORMAL как обычно работает
         ChromeOptions chromeOptions = new ChromeOptions();         //EAGER быстрее работает
       // chromeOptions.setPageLoadStrategy(PageLoadStrategy.NORMAL);//NONE не будет ждать автоматом работает
-      //  chromeOptions.addArguments("--headless=new"); //браузер не видим но тесты проходить очень удобно
+        chromeOptions.addArguments("--headless=new"); //браузер не видим но тесты проходить очень удобно
         driver = new ChromeDriver(chromeOptions);
         driver.manage().window().maximize();
         return driver;

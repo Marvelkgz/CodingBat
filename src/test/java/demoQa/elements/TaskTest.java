@@ -3,7 +3,7 @@ package demoQa.elements;
 import demoQa.BaseDemoQaTest;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-@Tag("UI")
+@Tag("SmokeUI")
 public class TaskTest extends BaseDemoQaTest {
 
     @Test

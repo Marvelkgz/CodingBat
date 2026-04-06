@@ -2,12 +2,13 @@ package dbTest;
 
 import org.example.digital_nomads.demoQa.db.beans.Actor;
 import org.example.digital_nomads.demoQa.db.db_utils.DB_Connection;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
+@Tag("RegressionDB")
 public class ActorTest {
 
     @Test
@@ -63,7 +64,7 @@ public class ActorTest {
     @Test
     void deleteActor() throws SQLException {
         DB_Connection.openConnection("dvdrental");
-
-        DB_Connection.delete("actor", "actor_id", 1);
+        DB_Connection.delete("film_actor", "actor_id", 1);// Сначала удаляем связанные записи в film_actor
+        DB_Connection.delete("actor", "actor_id", 1);// Теперь можно удалить актёра
     }
 }

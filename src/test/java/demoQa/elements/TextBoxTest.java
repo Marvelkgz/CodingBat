@@ -5,7 +5,7 @@ import org.example.digital_nomads.demoQa.models.UserTextBox;
 import org.example.digital_nomads.demoQa.utils.RandomUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-@Tag("UI")
+@Tag("SmokeUI")
 public class TextBoxTest extends BaseDemoQaTest {
 
     @Test
