@@ -5,38 +5,22 @@ pipeline {
         jdk 'JDK21'
     }
     parameters {
-        string(
-            name: 'BRANCH',
-            defaultValue: 'main',
-            description: 'Укажите ветку для запуска тестов'
-        )
-        choice(
-            name: 'TEST_SUITE',
-            choices: ['smoke', 'regression', 'e2e', 'api'],
-            description: 'Выберите какие тесты запустить'
-        )
-        string(
-            name: 'CUSTOM_TEST',
-            defaultValue: '',
-            description: 'Укажите конкретный тест (например: ts 001). Если заполнено — TEST_SUITE игнорируется'
-        )
-        booleanParam(
-            name: 'RERUN_FAILED',
-            defaultValue: false,
-            description: 'Перезапустить только упавшие тесты с последнего билда'
-        )
-    )
-    }
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Укажите ветку')
+        choice(name: 'TEST_SUITE', choices: ['smoke', 'regression', 'e2e', 'api'], description: 'Выберите suite')
+        string(name: 'CUSTOM_TEST', defaultValue: '', description: 'Конкретный тест')
+        booleanParam(name: 'RERUN_FAILED', defaultValue: false, description: 'Перезапуск упавших')
+    } // Исправлено: убрана лишняя круглая скобка
+
     environment {
         TELEGRAM_BOT_TOKEN = credentials('telegram-bot-token')
         TELEGRAM_CHAT_ID   = credentials('telegram-chat-id')
         ALLURE_RESULTS_DIR = 'build/allure-results'
     }
+
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/Marvelkgz/CodingBat.git',
-                    branch: "${params.BRANCH}"
+                git url: 'https://github.com/Marvelkgz/CodingBat.git', branch: "${params.BRANCH}"
             }
         }
         stage('Resolve test task') {
@@ -56,30 +40,7 @@ pipeline {
             steps {
                 script {
                     if (params.CUSTOM_TEST?.trim()) {
-                        echo "Запускаем конкретный тест: ${params.CUSTOM_TEST}"
                         bat "gradle ${env.GRADLE_TASK} --tests \"${params.CUSTOM_TEST}\" --continue"
-                    } else if (params.RERUN_FAILED) {
-                        def failedTests = []
-                        def reportDir = "${WORKSPACE}\\build\\test-results\\${env.GRADLE_TASK}"
-                        if (fileExists(reportDir)) {
-                            def files = findFiles(glob: "build/test-results/${env.GRADLE_TASK}/*.xml")
-                            files.each { file ->
-                                def content = readFile(file.path)
-                                if ((content.contains('failures="') && !content.contains('failures="0"')) ||
-                                    (content.contains('errors="')   && !content.contains('errors="0"'))) {
-                                    def matcher = content =~ /classname="([^"]+)"/
-                                    if (matcher) failedTests << matcher[0][1]
-                                }
-                            }
-                        }
-                        if (failedTests.isEmpty()) {
-                            echo 'Упавших тестов не найдено — запускаем все'
-                            bat "gradle ${env.GRADLE_TASK} --continue"
-                        } else {
-                            def filter = failedTests.unique().join(',')
-                            echo "Перезапускаем упавшие: ${filter}"
-                            bat "gradle ${env.GRADLE_TASK} --tests \"${filter}\" --continue"
-                        }
                     } else {
                         bat "gradle ${env.GRADLE_TASK} --continue"
                     }
@@ -87,32 +48,34 @@ pipeline {
             }
         }
     }
+
     post {
         always {
-            allure includeProperties: false,
-                   results: [[path: "${ALLURE_RESULTS_DIR}"]]
-           script {
-                           def status    = currentBuild.currentResult
-                           def emoji     = (status == 'SUCCESS') ? '✅ SUCCESS' : (status == 'UNSTABLE') ? '⚠️ UNSTABLE' : '❌ FAILURE'
-                           def duration  = currentBuild.durationString
-                           def allureUrl = "${env.BUILD_URL}allure/"
+            allure includeProperties: false, results: [[path: "${env.ALLURE_RESULTS_DIR}"]]
+            script {
+                def status    = currentBuild.currentResult
+                def emoji     = (status == 'SUCCESS') ? '✅ SUCCESS' : '❌ FAILURE'
+                def duration  = currentBuild.durationString
+                def allureUrl = "${env.BUILD_URL}allure/"
 
-                           // Формируем текст сообщения
-                           // Используем двойной процент %%0A для переноса строки в bat (Windows)
-                           def msg = "<b>${emoji}</b>%%0A" +
-                                     "<b>Status:</b> ${status}%%0A" +
-                                     "<b>Branch:</b> ${params.BRANCH}%%0A" +
-                                     "<b>Duration:</b> ${duration}%%0A" +
-                                     "<a href='${allureUrl}'>📂 Открыть Allure Отчет</a>"
+                // Объявляем переменную suite, иначе будет ошибка
+                def suiteInfo = params.CUSTOM_TEST?.trim() ? "Тест: ${params.CUSTOM_TEST}" : "Suite: ${params.TEST_SUITE}"
 
-                           // Используем двойные кавычки для bat-скрипта и интерполяцию Groovy ${}
-                           bat """
-                           curl -s -X POST "https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage" ^
-                           -d "chat_id=${env.TELEGRAM_CHAT_ID}" ^
-                           -d "parse_mode=HTML" ^
-                           -d "text=${msg}"
-                           """
-                       }
+                // Формируем сообщение в формате HTML (так как parse_mode=HTML)
+                def msg = "<b>${emoji} Pipeline: f_tests</b>%0A" +
+                          "Статус: <b>${status}</b>%0A" +
+                          "Ветка: ${params.BRANCH}%0A" +
+                          "${suiteInfo}%0A" +
+                          "Длительность: ${duration}%0A" +
+                          "<a href='${allureUrl}'>📊 Открыть Allure-отчёт</a>"
+
+                bat """
+                curl -s -X POST "https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage" ^
+                -d "chat_id=${env.TELEGRAM_CHAT_ID}" ^
+                -d "parse_mode=HTML" ^
+                -d "text=${msg}"
+                """
+            }
         }
     }
 }
