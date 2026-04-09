@@ -69,4 +69,7 @@ tasks.register<Test>("smokeUIAndApiTest") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     outputs.upToDateWhen { false }
+
 }
+
+
