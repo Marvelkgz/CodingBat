@@ -13,8 +13,6 @@ pipeline {
     }
 
     environment {
-        TELEGRAM_BOT_TOKEN = credentials('telegram-bot-token')
-        TELEGRAM_CHAT_ID   = credentials('telegram-chat-id')
         ALLURE_RESULTS_DIR = 'build/allure-results'
     }
 
@@ -30,10 +28,9 @@ pipeline {
             steps {
                 script {
                     def suiteMap = [
-                        smoke:      'smokeUIAndApiTest',
-                        regression: 'regressionTest',
-                        e2e:        'e2eTest',
-                        api:        'e2eTest'
+                        smokeUIAndApiTest: 'smokeUIAndApiTest',
+                        regressionTest:    'regressionTest',
+                        e2eTest:           'e2eTest'
                     ]
                     env.GRADLE_TASK = suiteMap[params.TEST_SUITE] ?: 'smokeUIAndApiTest'
                 }
@@ -57,9 +54,9 @@ pipeline {
         always {
             node('') {
                 allure includeProperties: false,
-                       results: [[path: 'allure-results']]
+                       results: [[path: "${env.WORKSPACE}\\build\\allure-results"]]
 
-                script {  // ← вот чего не хватало
+                script {
                     def status    = currentBuild.currentResult
                     def emoji     = (status == 'SUCCESS') ? '✅ SUCCESS' : '❌ FAILURE'
                     def duration  = currentBuild.durationString
@@ -68,21 +65,25 @@ pipeline {
                         ? "Test: ${params.CUSTOM_TEST}"
                         : "Suite: ${params.TEST_SUITE}"
 
-                    def telegramText = "<b>${emoji} Pipeline: f_tests</b>%0A" +
-                                       "Статус: <b>${status}</b>%0A" +
-                                       "Ветка: ${params.BRANCH}%0A" +
-                                       "${suiteInfo}%0A" +
-                                       "Длительность: ${duration}%0A" +
-                                       "<a href='${allureUrl}'>📊 Открыть Allure-отчет</a>"
+                    def telegramText = "${emoji} Pipeline: f_tests\n" +
+                                       "Статус: ${status}\n" +
+                                       "Ветка: ${params.BRANCH}\n" +
+                                       "${suiteInfo}\n" +
+                                       "Длительность: ${duration}\n" +
+                                       "Allure: ${allureUrl}"
 
-                    def formattedMsg = telegramText.replace('%', '%%')
-
-                    bat """
-                        curl -s -X POST "https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage" ^
-                        -d "chat_id=${env.TELEGRAM_CHAT_ID}" ^
-                        -d "parse_mode=HTML" ^
-                        -d "text=${formattedMsg}"
-                    """
+                    // Безопасная передача секретов через withCredentials
+                    withCredentials([
+                        string(credentialsId: 'telegram-bot-token', variable: 'BOT_TOKEN'),
+                        string(credentialsId: 'telegram-chat-id',   variable: 'CHAT_ID')
+                    ]) {
+                        bat """
+                            curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendMessage" ^
+                            --data-urlencode "chat_id=%CHAT_ID%" ^
+                            --data-urlencode "text=${telegramText}" ^
+                            --data-urlencode "parse_mode=HTML"
+                        """
+                    }
                 }
             }
         }
