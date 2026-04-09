@@ -5,7 +5,7 @@ pipeline {
         jdk 'JDK21'
     }
     parameters {
-        string(name: 'BRANCH', defaultValue: 'main', description: 'Укажите ветку')
+        string(name: 'BRANCH', defaultValue: 'sumi', description: 'Укажите ветку')
         choice(name: 'TEST_SUITE', choices: ['smokeUIAndApiTest', 'regressionTest', 'e2eTest', 'e2eTest'],
          description: 'Выберите suite')
         string(name: 'CUSTOM_TEST', defaultValue: '', description: 'Конкретный тест')
