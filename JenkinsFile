@@ -50,42 +50,43 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            node('') {
-                allure includeProperties: false,
-                       results: [[path: "${env.WORKSPACE}\\build\\allure-results"]]
+post {
+    always {
+        node('') {
+            allure includeProperties: false,
+                   results: [[path: 'C:\\Users\\marve\\.jenkins\\workspace\\Ray\\build\\allure-results']]
 
-                script {
-                    def status    = currentBuild.currentResult
-                    def emoji     = (status == 'SUCCESS') ? '✅ SUCCESS' : '❌ FAILURE'
-                    def duration  = currentBuild.durationString
-                    def allureUrl = "${env.BUILD_URL}allure/"
-                    def suiteInfo = params.CUSTOM_TEST?.trim()
-                        ? "Test: ${params.CUSTOM_TEST}"
-                        : "Suite: ${params.TEST_SUITE}"
+            script {
+                def status    = currentBuild.currentResult
+                def duration  = currentBuild.durationString
+                def allureUrl = "${env.BUILD_URL}allure/"
+                def suiteInfo = params.CUSTOM_TEST?.trim()
+                    ? "Test: ${params.CUSTOM_TEST}"
+                    : "Suite: ${params.TEST_SUITE}"
 
-                    def telegramText = "${emoji} Pipeline: f_tests\n" +
-                                       "Статус: ${status}\n" +
-                                       "Ветка: ${params.BRANCH}\n" +
-                                       "${suiteInfo}\n" +
-                                       "Длительность: ${duration}\n" +
-                                       "Allure: ${allureUrl}"
+                // Без эмодзи — только ASCII и кириллица
+                def telegramText = "[${status}] Pipeline: f_tests\n" +
+                                   "Статус: ${status}\n" +
+                                   "Ветка: ${params.BRANCH}\n" +
+                                   "${suiteInfo}\n" +
+                                   "Длительность: ${duration}\n" +
+                                   "Allure: ${allureUrl}"
 
-                    // Безопасная передача секретов через withCredentials
-                    withCredentials([
-                        string(credentialsId: 'telegram-bot-token', variable: 'BOT_TOKEN'),
-                        string(credentialsId: 'telegram-chat-id',   variable: 'CHAT_ID')
-                    ]) {
-                        bat """
-                            curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendMessage" ^
-                            --data-urlencode "chat_id=%CHAT_ID%" ^
-                            --data-urlencode "text=${telegramText}" ^
-                            --data-urlencode "parse_mode=HTML"
-                        """
-                    }
+                // Записываем текст в файл чтобы избежать проблем с кодировкой и переносами
+                writeFile file: 'telegram_msg.txt', text: telegramText
+
+                withCredentials([
+                    string(credentialsId: 'telegram-bot-token', variable: 'BOT_TOKEN'),
+                    string(credentialsId: 'telegram-chat-id',   variable: 'CHAT_ID')
+                ]) {
+                    bat """
+                        curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendMessage" ^
+                        --data-urlencode "chat_id=%CHAT_ID%" ^
+                        --data-urlencode "text@telegram_msg.txt"
+                    """
                 }
             }
         }
     }
+}
 }
