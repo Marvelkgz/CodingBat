@@ -7,6 +7,7 @@ import org.openqa.selenium.WebElement;
 
 import java.util.List;
 @Tag("E2E")
+
 public class AmazonTest extends BaseDemoQaTest {
 
     @Test
