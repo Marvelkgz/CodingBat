@@ -14,15 +14,21 @@ pipeline {
 
     environment {
         ALLURE_RESULTS_DIR = 'build/allure-results'
-        MAIN_WORKSPACE     = ''
     }
 
     stages {
-        stage('Checkout') {
+        // Отдельный stage — сохраняем workspace ДО всего остального
+        stage('Save Workspace') {
             steps {
                 script {
                     env.MAIN_WORKSPACE = env.WORKSPACE
+                    echo "MAIN_WORKSPACE saved: ${env.MAIN_WORKSPACE}"
                 }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
                 git url: 'https://github.com/Marvelkgz/CodingBat.git',
                     branch: "${params.BRANCH}"
             }
@@ -45,7 +51,10 @@ pipeline {
             steps {
                 script {
                     if (params.CUSTOM_TEST?.trim()) {
-                        bat "gradle ${env.GRADLE_TASK} --tests ${params.CUSTOM_TEST} --continue"
+                        def testFilter = params.CUSTOM_TEST.contains('*')
+                            ? params.CUSTOM_TEST
+                            : "*${params.CUSTOM_TEST}*"
+                        bat "gradle ${env.GRADLE_TASK} --tests \"${testFilter}\" --continue"
                     } else {
                         bat "gradle ${env.GRADLE_TASK} --continue"
                     }
@@ -57,7 +66,10 @@ pipeline {
     post {
         always {
             node('') {
-                // Allure читает результаты из основного workspace
+                script {
+                    echo "MAIN_WORKSPACE in post: ${env.MAIN_WORKSPACE}"
+                }
+
                 allure includeProperties: false,
                        results: [[path: "${env.MAIN_WORKSPACE}\\${env.ALLURE_RESULTS_DIR}"]]
 
@@ -70,17 +82,7 @@ pipeline {
                         ? "Test: ${params.CUSTOM_TEST}"
                         : "Suite: ${params.TEST_SUITE}"
 
-                    // Ссылка на Allure внутри Jenkins (открывается локально)
                     def allureUrl = "http://localhost:8080/job/${jobName}/${buildNum}/allure/"
-
-                    // Архив HTML отчёта для отправки в Telegram
-                    def reportDir = "${env.MAIN_WORKSPACE}\\build\\reports\\tests\\${env.GRADLE_TASK}"
-                    def reportZip = "${env.WORKSPACE}\\test-report.zip"
-
-                    // Упаковываем HTML отчёт в zip
-                    bat """
-                        powershell -Command "Compress-Archive -Force -Path '${reportDir}' -DestinationPath '${reportZip}'"
-                    """
 
                     def telegramText = "[${status}] Pipeline: ${jobName}\n" +
                                        "Статус: ${status}\n" +
@@ -91,23 +93,29 @@ pipeline {
 
                     writeFile file: "${env.WORKSPACE}\\telegram_msg.txt", text: telegramText
 
+                    def reportDir = "${env.MAIN_WORKSPACE}\\build\\reports\\tests\\${env.GRADLE_TASK}"
+                    def reportZip = "${env.WORKSPACE}\\test-report.zip"
+                    def ps = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
+
+                    bat """
+                        ${ps} -Command "Compress-Archive -Force -Path '${reportDir}' -DestinationPath '${reportZip}'"
+                    """
+
                     withCredentials([
                         string(credentialsId: 'telegram-bot-token', variable: 'BOT_TOKEN'),
                         string(credentialsId: 'telegram-chat-id',   variable: 'CHAT_ID')
                     ]) {
-                        // Отправляем текстовое сообщение
                         bat """
                             curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendMessage" ^
                             --data-urlencode "chat_id=%CHAT_ID%" ^
                             --data-urlencode "text@${env.WORKSPACE}\\telegram_msg.txt"
                         """
 
-                        // Отправляем zip с HTML отчётом
                         bat """
                             curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendDocument" ^
                             -F "chat_id=%CHAT_ID%" ^
                             -F "document=@${reportZip}" ^
-                            -F "caption=HTML отчёт тестов - Build ${buildNum}"
+                            -F "caption=HTML отчет - Build ${buildNum}"
                         """
                     }
                 }
