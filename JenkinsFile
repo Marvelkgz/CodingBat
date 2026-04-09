@@ -6,7 +6,8 @@ pipeline {
     }
     parameters {
         string(name: 'BRANCH', defaultValue: 'main', description: 'Укажите ветку')
-        choice(name: 'TEST_SUITE', choices: ['smoke', 'regression', 'e2e', 'api'], description: 'Выберите suite')
+        choice(name: 'TEST_SUITE', choices: ['smokeUIAndApiTest', 'regressionTest', 'e2eTest', 'e2eTest'],
+         description: 'Выберите suite')
         string(name: 'CUSTOM_TEST', defaultValue: '', description: 'Конкретный тест')
         booleanParam(name: 'RERUN_FAILED', defaultValue: false, description: 'Перезапуск упавших')
     } // Исправлено: убрана лишняя круглая скобка
@@ -20,7 +21,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/Marvelkgz/CodingBat.git', branch: "${params.BRANCH}"
+                git url: 'https://github.com/Marvelkgz/CodingBat.git', branch:
+                 "${params.BRANCH}"
             }
         }
         stage('Resolve test task') {
