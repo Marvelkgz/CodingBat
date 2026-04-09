@@ -14,11 +14,15 @@ pipeline {
 
     environment {
         ALLURE_RESULTS_DIR = 'build/allure-results'
+        MAIN_WORKSPACE     = ''
     }
 
     stages {
         stage('Checkout') {
             steps {
+                script {
+                    env.MAIN_WORKSPACE = env.WORKSPACE
+                }
                 git url: 'https://github.com/Marvelkgz/CodingBat.git',
                     branch: "${params.BRANCH}"
             }
@@ -50,43 +54,64 @@ pipeline {
         }
     }
 
-post {
-    always {
-        node('') {
-            allure includeProperties: false,
-                   results: [[path: 'C:\\Users\\marve\\.jenkins\\workspace\\Ray\\build\\allure-results']]
+    post {
+        always {
+            node('') {
+                // Allure читает результаты из основного workspace
+                allure includeProperties: false,
+                       results: [[path: "${env.MAIN_WORKSPACE}\\${env.ALLURE_RESULTS_DIR}"]]
 
-            script {
-                def status    = currentBuild.currentResult
-                def duration  = currentBuild.durationString
-                def allureUrl = "${env.BUILD_URL}allure/"
-                def suiteInfo = params.CUSTOM_TEST?.trim()
-                    ? "Test: ${params.CUSTOM_TEST}"
-                    : "Suite: ${params.TEST_SUITE}"
+                script {
+                    def status    = currentBuild.currentResult
+                    def duration  = currentBuild.durationString
+                    def buildNum  = env.BUILD_NUMBER
+                    def jobName   = env.JOB_NAME
+                    def suiteInfo = params.CUSTOM_TEST?.trim()
+                        ? "Test: ${params.CUSTOM_TEST}"
+                        : "Suite: ${params.TEST_SUITE}"
 
-                // Без эмодзи — только ASCII и кириллица
-                def telegramText = "[${status}] Pipeline: f_tests\n" +
-                                   "Статус: ${status}\n" +
-                                   "Ветка: ${params.BRANCH}\n" +
-                                   "${suiteInfo}\n" +
-                                   "Длительность: ${duration}\n" +
-                                   "Allure: ${allureUrl}"
+                    // Ссылка на Allure внутри Jenkins (открывается локально)
+                    def allureUrl = "http://localhost:8080/job/${jobName}/${buildNum}/allure/"
 
-                // Записываем текст в файл чтобы избежать проблем с кодировкой и переносами
-                writeFile file: 'telegram_msg.txt', text: telegramText
+                    // Архив HTML отчёта для отправки в Telegram
+                    def reportDir = "${env.MAIN_WORKSPACE}\\build\\reports\\tests\\${env.GRADLE_TASK}"
+                    def reportZip = "${env.WORKSPACE}\\test-report.zip"
 
-                withCredentials([
-                    string(credentialsId: 'telegram-bot-token', variable: 'BOT_TOKEN'),
-                    string(credentialsId: 'telegram-chat-id',   variable: 'CHAT_ID')
-                ]) {
+                    // Упаковываем HTML отчёт в zip
                     bat """
-                        curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendMessage" ^
-                        --data-urlencode "chat_id=%CHAT_ID%" ^
-                        --data-urlencode "text@telegram_msg.txt"
+                        powershell -Command "Compress-Archive -Force -Path '${reportDir}' -DestinationPath '${reportZip}'"
                     """
+
+                    def telegramText = "[${status}] Pipeline: ${jobName}\n" +
+                                       "Статус: ${status}\n" +
+                                       "Ветка: ${params.BRANCH}\n" +
+                                       "${suiteInfo}\n" +
+                                       "Длительность: ${duration}\n" +
+                                       "Allure в Jenkins: ${allureUrl}"
+
+                    writeFile file: "${env.WORKSPACE}\\telegram_msg.txt", text: telegramText
+
+                    withCredentials([
+                        string(credentialsId: 'telegram-bot-token', variable: 'BOT_TOKEN'),
+                        string(credentialsId: 'telegram-chat-id',   variable: 'CHAT_ID')
+                    ]) {
+                        // Отправляем текстовое сообщение
+                        bat """
+                            curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendMessage" ^
+                            --data-urlencode "chat_id=%CHAT_ID%" ^
+                            --data-urlencode "text@${env.WORKSPACE}\\telegram_msg.txt"
+                        """
+
+                        // Отправляем zip с HTML отчётом
+                        bat """
+                            curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendDocument" ^
+                            -F "chat_id=%CHAT_ID%" ^
+                            -F "document=@${reportZip}" ^
+                            -F "caption=HTML отчёт тестов - Build ${buildNum}"
+                        """
+                    }
                 }
             }
         }
     }
-}
 }
