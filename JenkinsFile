@@ -17,7 +17,6 @@ pipeline {
     }
 
     stages {
-        // Отдельный stage — сохраняем workspace ДО всего остального
         stage('Save Workspace') {
             steps {
                 script {
@@ -63,124 +62,56 @@ pipeline {
         }
     }
 
-post {
-    always {
-        node('') {
-            allure includeProperties: false,
-                   results: [[path: "${env.MAIN_WORKSPACE}\\${env.ALLURE_RESULTS_DIR}"]]
+    post {
+        always {
+            node('') {
+                allure includeProperties: false,
+                       results: [[path: "${env.MAIN_WORKSPACE}\\${env.ALLURE_RESULTS_DIR}"]]
 
-            script {
-                def status   = currentBuild.currentResult
-                def duration = currentBuild.durationString
-                def buildNum = env.BUILD_NUMBER
-                def jobName  = env.JOB_NAME
-                def suiteInfo = params.CUSTOM_TEST?.trim()
-                    ? "Test: ${params.CUSTOM_TEST}"
-                    : "Suite: ${params.TEST_SUITE}"
-                def allureUrl = "http://localhost:8080/job/${jobName}/${buildNum}/allure/"
+                script {
+                    // Считаем статистику из XML результатов
+                    def passed = 0
+                    def failed = 0
+                    def total  = 0
 
-                // Читаем статистику из XML отчёта Gradle
-                def xmlPath = "${env.MAIN_WORKSPACE}\\build\\reports\\tests\\${env.GRADLE_TASK}\\index.html"
+                    try {
+                        def xmlDir = new File("${env.MAIN_WORKSPACE}\\build\\test-results\\${env.GRADLE_TASK}")
+                        xmlDir.eachFileMatch(~/.*\.xml/) { f ->
+                            def xml = new XmlSlurper().parse(f)
+                            def t  = (xml.@tests    as String).toInteger()
+                            def fa = (xml.@failures as String).toInteger()
+                            def e  = (xml.@errors   as String).toInteger()
+                            total  += t
+                            failed += fa + e
+                            passed += t - fa - e
+                        }
+                    } catch(e) {
+                        echo "Could not read XML results: ${e.message}"
+                    }
 
-                // Пишем Python скрипт для генерации картинки
-                def pythonScript = """
-import xml.etree.ElementTree as ET
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import os, glob
+                    def duration = currentBuild.durationString
+                    def buildUrl = "http://localhost:8080/job/${env.JOB_NAME}/${env.BUILD_NUMBER}/allure/"
 
-# Читаем XML результаты тестов
-results_dir = r'${env.MAIN_WORKSPACE}\\build\\test-results\\${env.GRADLE_TASK}'
-total, passed, failed = 0, 0, 0
-
-for xml_file in glob.glob(results_dir + '\\\\*.xml'):
-    try:
-        tree = ET.parse(xml_file)
-        root = tree.getroot()
-        t = int(root.get('tests', 0))
-        f = int(root.get('failures', 0)) + int(root.get('errors', 0))
-        total += t
-        failed += f
-        passed += (t - f)
-    except:
-        pass
-
-if total == 0:
-    total, passed, failed = 1, 1, 0
-
-pass_pct  = round(passed / total * 100, 1)
-fail_pct  = round(failed / total * 100, 1)
-
-# Рисуем
-fig, ax = plt.subplots(figsize=(6, 5), facecolor='white')
-ax.set_facecolor('white')
-
-sizes  = [passed, failed] if failed > 0 else [passed]
-colors = ['#7cb342', '#fdd835'] if failed > 0 else ['#7cb342']
-wedges, _ = ax.pie(
-    sizes, colors=colors,
-    startangle=90,
-    wedgeprops=dict(width=0.45, edgecolor='white', linewidth=2)
-)
-
-ax.text(0, 0, str(total), ha='center', va='center', fontsize=36, fontweight='bold', color='#333')
-
-legend_patches = [
-    mpatches.Patch(color='#7cb342', label=f'{passed} успешных'),
-    mpatches.Patch(color='#fdd835', label=f'{failed} сломанных'),
-]
-ax.legend(handles=legend_patches, loc='center right', bbox_to_anchor=(1.35, 0.5), fontsize=11)
-
-ax.annotate(f'{fail_pct}%%', xy=(0.08, 0.85), xycoords='axes fraction', fontsize=11, color='#888')
-ax.annotate(f'{pass_pct}%%', xy=(0.08, 0.12), xycoords='axes fraction', fontsize=11, color='#888')
-
-info = [
-    ('Рабочее окружение:', 'gorest.co.in'),
-    ('Комментарий:', 'Результаты тестов'),
-    ('Продолжительность:', '${duration}'),
-    ('Всего сценариев:', str(total)),
-    (f'Всего успешных тестов:', f'{passed} ({pass_pct} %)'),
-    (f'Всего сломанных тестов:', str(failed)),
-    ('Отчет в Jenkins:', '${allureUrl}'),
-]
-
-y = -1.55
-for label, value in info:
-    ax.text(-1.1, y, label, fontsize=9, fontweight='bold', color='#333', transform=ax.transData)
-    ax.text(0.05, y, value,  fontsize=9, color='#555',           transform=ax.transData)
-    y -= 0.22
-
-ax.set_title('${jobName}', fontsize=13, fontweight='bold', pad=15, color='#333')
-ax.set_xlim(-1.1, 1.5)
-ax.set_ylim(-2.3, 1.3)
-
-plt.tight_layout()
-plt.savefig(r'${env.WORKSPACE}\\report.png', dpi=130, bbox_inches='tight', facecolor='white')
-print('OK')
-"""
-
-                writeFile file: "${env.WORKSPACE}\\gen_report.py", text: pythonScript
-
-                // Устанавливаем matplotlib если нет и генерируем картинку
-                bat """
-                    pip install matplotlib --quiet --break-system-packages 2>nul || pip install matplotlib --quiet
-                    python "${env.WORKSPACE}\\gen_report.py"
-                """
-
-                withCredentials([
-                    string(credentialsId: 'telegram-bot-token', variable: 'BOT_TOKEN'),
-                    string(credentialsId: 'telegram-chat-id',   variable: 'CHAT_ID')
-                ]) {
-                    bat """
-                        curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendPhoto" ^
-                        -F "chat_id=%CHAT_ID%" ^
-                        -F "photo=@${env.WORKSPACE}\\report.png"
-                    """
+                    withCredentials([
+                        string(credentialsId: 'telegram-bot-token', variable: 'BOT_TOKEN'),
+                        string(credentialsId: 'telegram-chat-id',   variable: 'CHAT_ID')
+                    ]) {
+                        bat """
+                            cd /d "${env.MAIN_WORKSPACE}" && ^
+                            gradle runTelegramReport ^
+                            -Ppassed=${passed} ^
+                            -Pfailed=${failed} ^
+                            -Ptotal=${total} ^
+                            -Pduration="${duration}" ^
+                            -Pbranch="${params.BRANCH}" ^
+                            -Psuite="${params.TEST_SUITE}" ^
+                            -PbuildUrl="${buildUrl}" ^
+                            -PbotToken=%BOT_TOKEN% ^
+                            -PchatId=%CHAT_ID%
+                        """
+                    }
                 }
             }
         }
     }
-}
 }
