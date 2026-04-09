@@ -29,7 +29,7 @@ pipeline {
     environment {
         TELEGRAM_BOT_TOKEN = credentials('telegram-bot-token')
         TELEGRAM_CHAT_ID   = credentials('telegram-chat-id')
-        ALLURE_RESULTS_DIR = 'allure-results'
+        ALLURE_RESULTS_DIR = 'build/allure-results'
     }
     stages {
         stage('Checkout') {
@@ -100,9 +100,13 @@ pipeline {
                                 : (params.RERUN_FAILED
                                    ? "Перезапуск упавших (${params.TEST_SUITE})"
                                    : "Suite: ${params.TEST_SUITE}")
-                def msg = "${emoji} Pipeline: f_tests%0AСтатус: ${status}%0AВетка: ${params.BRANCH}%0A${suite}%0AДлительность: ${duration}%0AAllure: ${allureUrl}%0AСборка: ${env.BUILD_URL}"
-                bat "curl -s -X POST \"https://api.telegram.org/bot%TELEGRAM_BOT_TOKEN%/sendMessage\" -d \"chat_id=%TELEGRAM_CHAT_ID%\" -d \"text=${msg}\""
-            }
+                def msg = "${emoji} Pipeline: f_tests%0ASTATUS: ${status}%0ABRABCH: ${params.BRANCH}%0A${suite}%0AДлительность: ${duration}%0AAllure: ${allureUrl}%0AСборка: ${env.BUILD_URL}"
+                bat """
+                curl -s -X POST "https://api.telegram.org/bot%TELEGRAM_BOT_TOKEN%/sendMessage" ^
+                -d "chat_id=%TELEGRAM_CHAT_ID%" ^
+                -d "parse_mode=HTML" ^
+                -d "text=<b>${emoji}</b>%0A<b>Status:</b> ${status}%0A<a href='${allureUrl}'>Открыть Allure Отчет</a>"
+                """}
         }
     }
 }
