@@ -6,11 +6,11 @@ pipeline {
     }
     parameters {
         string(name: 'BRANCH', defaultValue: 'sumi', description: 'Укажите ветку')
-        choice(name: 'TEST_SUITE', choices: ['smokeUIAndApiTest', 'regressionTest', 'e2eTest', 'e2eTest'],
-         description: 'Выберите suite')
+        choice(name: 'TEST_SUITE', choices: ['smokeUIAndApiTest', 'regressionTest', 'e2eTest'],
+               description: 'Выберите suite')
         string(name: 'CUSTOM_TEST', defaultValue: '', description: 'Конкретный тест')
         booleanParam(name: 'RERUN_FAILED', defaultValue: false, description: 'Перезапуск упавших')
-    } // Исправлено: убрана лишняя круглая скобка
+    }
 
     environment {
         TELEGRAM_BOT_TOKEN = credentials('telegram-bot-token')
@@ -21,10 +21,11 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/Marvelkgz/CodingBat.git', branch:
-                 "${params.BRANCH}"
+                git url: 'https://github.com/Marvelkgz/CodingBat.git',
+                    branch: "${params.BRANCH}"
             }
         }
+
         stage('Resolve test task') {
             steps {
                 script {
@@ -38,11 +39,12 @@ pipeline {
                 }
             }
         }
+
         stage('Run Tests') {
             steps {
                 script {
                     if (params.CUSTOM_TEST?.trim()) {
-                        bat "gradle ${env.GRADLE_TASK} --tests \"${params.CUSTOM_TEST}\" --continue"
+                        bat "gradle ${env.GRADLE_TASK} --tests ${params.CUSTOM_TEST} --continue"
                     } else {
                         bat "gradle ${env.GRADLE_TASK} --continue"
                     }
@@ -51,35 +53,38 @@ pipeline {
         }
     }
 
-post {
-    always {
-        node('') {
-            allure includeProperties: false, results: [[path: 'allure-results']]
+    post {
+        always {
+            node('') {
+                allure includeProperties: false,
+                       results: [[path: 'allure-results']]
 
-               def status    = currentBuild.currentResult
-               def emoji     = (status == 'SUCCESS') ? '✅ SUCCESS' : '❌ FAILURE'
-               def duration  = currentBuild.durationString
-               def allureUrl = "${env.BUILD_URL}allure/"
-               def suiteInfo = params.CUSTOM_TEST?.trim() ? "Test: ${params.CUSTOM_TEST}" : "Suite: ${params.TEST_SUITE}"
+                script {  // ← вот чего не хватало
+                    def status    = currentBuild.currentResult
+                    def emoji     = (status == 'SUCCESS') ? '✅ SUCCESS' : '❌ FAILURE'
+                    def duration  = currentBuild.durationString
+                    def allureUrl = "${env.BUILD_URL}allure/"
+                    def suiteInfo = params.CUSTOM_TEST?.trim()
+                        ? "Test: ${params.CUSTOM_TEST}"
+                        : "Suite: ${params.TEST_SUITE}"
 
-               // Собираем сообщение в ОДНУ строку без физических переносов (используем %0A для Telegram)
-               def telegramText = "<b>${emoji} Pipeline: f_tests</b>%0A" +
-                                  "Статус: <b>${status}</b>%0A" +
-                                  "Ветка: ${params.BRANCH}%0A" +
-                                  "${suiteInfo}%0A" +
-                                  "Длительность: ${duration}%0A" +
-                                  "<a href='${allureUrl}'>📊 Открыть Allure-отчет</a>"
+                    def telegramText = "<b>${emoji} Pipeline: f_tests</b>%0A" +
+                                       "Статус: <b>${status}</b>%0A" +
+                                       "Ветка: ${params.BRANCH}%0A" +
+                                       "${suiteInfo}%0A" +
+                                       "Длительность: ${duration}%0A" +
+                                       "<a href='${allureUrl}'>📊 Открыть Allure-отчет</a>"
 
-               // Важно: в bat для Windows знак % нужно удваивать, чтобы он не воспринимался как переменная
-               def formattedMsg = telegramText.replace('%', '%%')
+                    def formattedMsg = telegramText.replace('%', '%%')
 
-               bat """
-               curl -s -X POST "https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage" ^
-               -d "chat_id=${env.TELEGRAM_CHAT_ID}" ^
-               -d "parse_mode=HTML" ^
-               -d "text=${formattedMsg}"
-               """
-           }
+                    bat """
+                        curl -s -X POST "https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage" ^
+                        -d "chat_id=${env.TELEGRAM_CHAT_ID}" ^
+                        -d "parse_mode=HTML" ^
+                        -d "text=${formattedMsg}"
+                    """
+                }
+            }
         }
     }
 }
