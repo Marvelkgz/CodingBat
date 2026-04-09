@@ -51,10 +51,11 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            allure includeProperties: false, results: [[path: "${env.ALLURE_RESULTS_DIR}"]]
-           script {
+post {
+    always {
+        node('') {
+            allure includeProperties: false, results: [[path: 'allure-results']]
+
                def status    = currentBuild.currentResult
                def emoji     = (status == 'SUCCESS') ? '✅ SUCCESS' : '❌ FAILURE'
                def duration  = currentBuild.durationString
