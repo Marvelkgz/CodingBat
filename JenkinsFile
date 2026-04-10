@@ -186,18 +186,23 @@ h2{font-size:15px;margin-bottom:10px;}
                     string(credentialsId: 'telegram-bot-token', variable: 'BOT_TOKEN'),
                     string(credentialsId: 'telegram-chat-id',   variable: 'CHAT_ID')
                 ]) {
-                    bat """
-                        curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendPhoto" ^
-                        -F "chat_id=%CHAT_ID%" ^
-                        -F "photo=@${pngFile}" ^
-                        -F "caption@${env.WORKSPACE}\\telegram_msg.txt"
-                    """
-                    bat """
-                        curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendDocument" ^
-                        -F "chat_id=%CHAT_ID%" ^
-                        -F "document=@${reportZip}" ^
-                        -F "caption=HTML отчет - Build ${buildNum}"
-                    """
+
+                      def caption = "[${status}] ${jobName} Build #${buildNum} | ${suiteInfo}
+                      | ${duration} | Всего: ${total} ✅${passed} ❌${failed} ⏭${skipped}"
+
+                      bat """
+                          curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendPhoto" ^
+                          -F "chat_id=%CHAT_ID%" ^
+                          -F "photo=@${pngFile}" ^
+                          -F "caption=${caption}"
+                      """
+
+                      bat """
+                          curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendDocument" ^
+                          -F "chat_id=%CHAT_ID%" ^
+                          -F "document=@${reportZip}" ^
+                          -F "caption=HTML отчет - Build ${buildNum}"
+                      """
                 }
             }
         }
