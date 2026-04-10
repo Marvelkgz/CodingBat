@@ -74,109 +74,122 @@ pipeline {
                        results: [[path: "${env.MAIN_WORKSPACE}\\${env.ALLURE_RESULTS_DIR}"]]
 
                 script {
-                    def status   = currentBuild.currentResult
-                    def duration = currentBuild.durationString
-                    def buildNum = env.BUILD_NUMBER
-                    def jobName  = env.JOB_NAME
+                    def status    = currentBuild.currentResult
+                    def duration  = currentBuild.durationString
+                    def buildNum  = env.BUILD_NUMBER
+                    def jobName   = env.JOB_NAME
+                    def ps        = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
                     def suiteInfo = params.CUSTOM_TEST?.trim()
                         ? "Test: ${params.CUSTOM_TEST}"
                         : "Suite: ${params.TEST_SUITE}"
 
-                    // --- Читаем результаты тестов из XML ---
+                    def xmlDir = "${env.MAIN_WORKSPACE}\\build\\test-results\\${env.GRADLE_TASK}"
+
+                    // --- Читаем XML через PowerShell, без new File() ---
                     def passed  = 0
                     def failed  = 0
                     def skipped = 0
-                    def xmlDir  = new File("${env.MAIN_WORKSPACE}\\build\\test-results\\${env.GRADLE_TASK}")
-                    if (xmlDir.exists()) {
-                        xmlDir.eachFileMatch(~/.*\.xml/) { file ->
-                            def xml = new XmlSlurper().parse(file)
-                            passed  += (xml.@tests.toInteger() - xml.@failures.toInteger() - xml.@errors.toInteger() - xml.@skipped.toInteger())
-                            failed  += xml.@failures.toInteger() + xml.@errors.toInteger()
-                            skipped += xml.@skipped.toInteger()
-                        }
+
+                    def psResult = bat(returnStdout: true, script: """
+                        ${ps} -Command "
+                        \$passed=0; \$failed=0; \$skipped=0;
+                        Get-ChildItem '${xmlDir}' -Filter '*.xml' -ErrorAction SilentlyContinue | ForEach-Object {
+                            [xml]\$x = Get-Content \$_.FullName;
+                            \$t = [int]\$x.testsuite.tests;
+                            \$f = [int]\$x.testsuite.failures + [int]\$x.testsuite.errors;
+                            \$s = [int]\$x.testsuite.skipped;
+                            \$passed += (\$t - \$f - \$s); \$failed += \$f; \$skipped += \$s
+                        };
+                        Write-Output \\"PASSED=\$passed;FAILED=\$failed;SKIPPED=\$skipped\\"
+                        "
+                    """).trim()
+
+                    def lines = psResult.split('\n')
+                    def dataLine = lines.find { it.contains('PASSED=') } ?: 'PASSED=0;FAILED=0;SKIPPED=0'
+                    dataLine.split(';').each { pair ->
+                        def kv = pair.trim().split('=')
+                        if (kv[0] == 'PASSED')  passed  = kv[1].toInteger()
+                        if (kv[0] == 'FAILED')  failed  = kv[1].toInteger()
+                        if (kv[0] == 'SKIPPED') skipped = kv[1].toInteger()
                     }
-                    def total   = passed + failed + skipped
+
+                    def total      = passed + failed + skipped
                     def passedPct  = total > 0 ? Math.round(passed  * 100.0 / total) : 0
                     def failedPct  = total > 0 ? Math.round(failed  * 100.0 / total) : 0
                     def skippedPct = total > 0 ? Math.round(skipped * 100.0 / total) : 0
 
-                    // --- Генерируем HTML с графиком ---
+                    // --- Генерируем HTML с donut-графиком ---
+                    def passedOffset  = 25
+                    def failedOffset  = 25 - passedPct
+                    def skippedOffset = 25 - passedPct - failedPct
+
                     def htmlChart = """<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
+<html><head><meta charset="UTF-8">
 <style>
-  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; width: 500px; }
-  h2 { font-size: 18px; margin-bottom: 10px; }
-  .chart-wrap { display: flex; align-items: center; gap: 30px; }
-  .donut { position: relative; width: 180px; height: 180px; }
-  .donut svg { width: 180px; height: 180px; }
-  .donut-total { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 32px; font-weight: bold; }
-  .legend { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
-  .legend-item { display: flex; align-items: center; gap: 8px; }
-  .legend-box { width: 16px; height: 16px; border-radius: 2px; }
-</style>
-</head>
-<body>
+body{font-family:Arial,sans-serif;background:#fff;margin:0;padding:20px;width:500px;}
+h2{font-size:16px;margin-bottom:10px;}
+.wrap{display:flex;align-items:center;gap:30px;}
+.donut{position:relative;width:160px;height:160px;}
+.donut svg{width:160px;height:160px;}
+.total{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:30px;font-weight:bold;}
+.legend{font-size:13px;display:flex;flex-direction:column;gap:6px;}
+.li{display:flex;align-items:center;gap:8px;}
+.box{width:14px;height:14px;border-radius:2px;}
+.info{margin-top:10px;font-size:12px;color:#555;}
+</style></head><body>
 <h2>${jobName} — Build #${buildNum}</h2>
-<div class="chart-wrap">
+<div class="wrap">
   <div class="donut">
     <svg viewBox="0 0 36 36">
-      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#eee" stroke-width="3.5"/>
-      <!-- passed (green) -->
-      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#7cb342" stroke-width="3.5"
-        stroke-dasharray="${passedPct} ${100 - passedPct}"
-        stroke-dashoffset="25" />
-      <!-- failed (red) -->
-      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e53935" stroke-width="3.5"
-        stroke-dasharray="${failedPct} ${100 - failedPct}"
-        stroke-dashoffset="${25 - passedPct}" />
-      <!-- skipped (yellow) -->
-      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#fdd835" stroke-width="3.5"
-        stroke-dasharray="${skippedPct} ${100 - skippedPct}"
-        stroke-dashoffset="${25 - passedPct - failedPct}" />
+      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#eee" stroke-width="4"/>
+      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#7cb342" stroke-width="4"
+        stroke-dasharray="${passedPct} ${100-passedPct}" stroke-dashoffset="${passedOffset}"/>
+      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e53935" stroke-width="4"
+        stroke-dasharray="${failedPct} ${100-failedPct}" stroke-dashoffset="${failedOffset}"/>
+      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#fdd835" stroke-width="4"
+        stroke-dasharray="${skippedPct} ${100-skippedPct}" stroke-dashoffset="${skippedOffset}"/>
     </svg>
-    <div class="donut-total">${total}</div>
+    <div class="total">${total}</div>
   </div>
   <div class="legend">
-    <div class="legend-item"><div class="legend-box" style="background:#7cb342"></div>${passed} прошло (${passedPct}%)</div>
-    <div class="legend-item"><div class="legend-box" style="background:#e53935"></div>${failed} упало (${failedPct}%)</div>
-    <div class="legend-item"><div class="legend-box" style="background:#fdd835"></div>${skipped} пропущено (${skippedPct}%)</div>
+    <div class="li"><div class="box" style="background:#7cb342"></div>✅ ${passed} прошло (${passedPct}%)</div>
+    <div class="li"><div class="box" style="background:#e53935"></div>❌ ${failed} упало (${failedPct}%)</div>
+    <div class="li"><div class="box" style="background:#fdd835"></div>⏭ ${skipped} пропущено (${skippedPct}%)</div>
   </div>
 </div>
-<p style="margin-top:12px; font-size:13px; color:#555;">
+<div class="info">
   Статус: <b>${status}</b> | Ветка: <b>${params.BRANCH}</b><br>
   ${suiteInfo} | Длительность: ${duration}
-</p>
-</body>
-</html>"""
+</div>
+</body></html>"""
 
                     def htmlFile = "${env.WORKSPACE}\\chart.html"
                     def pngFile  = "${env.WORKSPACE}\\chart.png"
                     writeFile file: htmlFile, text: htmlChart
 
-                    // --- Конвертируем HTML в PNG через Chrome headless ---
-                    def ps = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
+                    // HTML → PNG через Chrome headless
                     bat """
                         "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" ^
-                        --headless --disable-gpu --screenshot="${pngFile}" ^
-                        --window-size=540,300 "${htmlFile}"
+                        --headless --disable-gpu ^
+                        --screenshot="${pngFile}" ^
+                        --window-size=540,280 ^
+                        "${htmlFile}"
                     """
 
-                    // --- Архив HTML отчёта ---
+                    // Архив HTML отчёта
                     def reportDir = "${env.MAIN_WORKSPACE}\\build\\reports\\tests\\${env.GRADLE_TASK}"
                     def reportZip = "${env.WORKSPACE}\\test-report.zip"
                     bat """
                         ${ps} -Command "Compress-Archive -Force -Path '${reportDir}' -DestinationPath '${reportZip}'"
                     """
 
-                    // --- Telegram сообщение ---
+                    // Текст для Telegram
                     def telegramText = "[${status}] Pipeline: ${jobName}\n" +
-                                       "Статус: ${status}\n" +
-                                       "Ветка: ${params.BRANCH}\n" +
-                                       "${suiteInfo}\n" +
-                                       "Длительность: ${duration}\n" +
-                                       "Всего: ${total} | ✅ ${passed} | ❌ ${failed} | ⏭ ${skipped}"
+                        "Статус: ${status}\n" +
+                        "Ветка: ${params.BRANCH}\n" +
+                        "${suiteInfo}\n" +
+                        "Длительность: ${duration}\n" +
+                        "Всего: ${total} | ✅ ${passed} | ❌ ${failed} | ⏭ ${skipped}"
 
                     writeFile file: "${env.WORKSPACE}\\telegram_msg.txt", text: telegramText
 
@@ -184,7 +197,7 @@ pipeline {
                         string(credentialsId: 'telegram-bot-token', variable: 'BOT_TOKEN'),
                         string(credentialsId: 'telegram-chat-id',   variable: 'CHAT_ID')
                     ]) {
-                        // Отправляем картинку-график
+                        // Картинка с графиком
                         bat """
                             curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendPhoto" ^
                             -F "chat_id=%CHAT_ID%" ^
@@ -192,7 +205,7 @@ pipeline {
                             -F "caption@${env.WORKSPACE}\\telegram_msg.txt"
                         """
 
-                        // Отправляем ZIP с HTML отчётом
+                        // ZIP с HTML отчётом
                         bat """
                             curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendDocument" ^
                             -F "chat_id=%CHAT_ID%" ^

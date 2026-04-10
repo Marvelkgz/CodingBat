@@ -51,7 +51,8 @@ tasks.register<Test>("regressionTest") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     outputs.upToDateWhen { false }
-    systemProperty("allure.results.directory", "${buildDir}/allure-results")
+    systemProperty("allure.results.directory",
+        layout.buildDirectory.dir("allure-results").get().asFile.absolutePath)
 }
 
 tasks.register<Test>("e2eTest") {
@@ -61,7 +62,8 @@ tasks.register<Test>("e2eTest") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     outputs.upToDateWhen { false }
-    systemProperty("allure.results.directory", "${buildDir}/allure-results")
+    systemProperty("allure.results.directory",
+        layout.buildDirectory.dir("allure-results").get().asFile.absolutePath)
 }
 
 tasks.register<Test>("apiTest") {
@@ -71,7 +73,8 @@ tasks.register<Test>("apiTest") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     outputs.upToDateWhen { false }
-    systemProperty("allure.results.directory", "${buildDir}/allure-results")
+    systemProperty("allure.results.directory",
+        layout.buildDirectory.dir("allure-results").get().asFile.absolutePath)
 }
 
 tasks.register<Test>("smokeTest") {
@@ -81,7 +84,8 @@ tasks.register<Test>("smokeTest") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     outputs.upToDateWhen { false }
-    systemProperty("allure.results.directory", "${buildDir}/allure-results")
+    systemProperty("allure.results.directory",
+        layout.buildDirectory.dir("allure-results").get().asFile.absolutePath)
 }
 
 
