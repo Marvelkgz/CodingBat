@@ -50,6 +50,11 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
+                    bat """
+                        if exist "${env.WORKSPACE}\\build\\allure-results" (
+                            rmdir /S /Q "${env.WORKSPACE}\\build\\allure-results"
+                        )
+                    """
                     if (params.CUSTOM_TEST?.trim()) {
                         def testFilter = params.CUSTOM_TEST.contains('*')
                             ? params.CUSTOM_TEST
@@ -85,14 +90,17 @@ pipeline {
                 writeFile file: ps1File, text: '''
 $passed=0; $failed=0; $skipped=0
 $xmlDir = $args[0]
-Get-ChildItem $xmlDir -Filter "*.xml" -ErrorAction SilentlyContinue | ForEach-Object {
+Get-ChildItem $xmlDir -Filter "*.xml" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
     [xml]$x = Get-Content $_.FullName
-    $t = [int]$x.testsuite.tests
-    $f = [int]$x.testsuite.failures + [int]$x.testsuite.errors
-    $s = [int]$x.testsuite.skipped
-    $passed += ($t - $f - $s)
-    $failed += $f
-    $skipped += $s
+    $suite = $x.testsuite
+    if ($suite -ne $null) {
+        $t = [int]$suite.tests
+        $f = [int]$suite.failures + [int]$suite.errors
+        $s = [int]$suite.skipped
+        $passed += ($t - $f - $s)
+        $failed += $f
+        $skipped += $s
+    }
 }
 Write-Output "PASSED=$passed;FAILED=$failed;SKIPPED=$skipped"
 '''
