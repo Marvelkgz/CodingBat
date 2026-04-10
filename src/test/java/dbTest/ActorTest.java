@@ -8,9 +8,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
+@Tag("RegressionDB")
 public class ActorTest {
-    @Tag("RegressionDB")
+    
     @Test
     void actorTest() throws SQLException {
         DB_Connection.openConnection("dvdrental");
@@ -18,7 +18,7 @@ public class ActorTest {
         Actor actor = Actor.getBy("actor_id", 1);
         System.out.println(actor);
     }
-    @Tag("RegressionDB")
+    
     @Test
     void createActor() throws SQLException {
         DB_Connection.openConnection("dvdrental");
@@ -29,7 +29,7 @@ public class ActorTest {
 
         DB_Connection.create("actor", fields);
     }
-    @Tag("RegressionDB")
+    
     @Test
     void readAllActors() throws SQLException {
         DB_Connection.openConnection("dvdrental");
@@ -39,7 +39,7 @@ public class ActorTest {
             System.out.println(rs.getString("first_name") + " " + rs.getString("last_name"));
         }
     }
-    @Tag("RegressionDB")
+    
     @Test
     void readActorById() throws SQLException {
         DB_Connection.openConnection("dvdrental");
@@ -49,7 +49,7 @@ public class ActorTest {
             System.out.println(rs.getString("first_name") + " " + rs.getString("last_name"));
         }
     }
-    @Tag("RegressionDB")
+    
     @Test
     void updateActor() throws SQLException {
         DB_Connection.openConnection("dvdrental");
@@ -60,7 +60,7 @@ public class ActorTest {
 
         DB_Connection.update("actor", "actor_id", 1, fields);
     }
-    @Tag("RegressionDB")
+    
     @Test
     void deleteActor() throws SQLException {
         DB_Connection.openConnection("dvdrental");

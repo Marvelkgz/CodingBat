@@ -13,7 +13,11 @@ public class PostController extends HttpRequest {
     }
 
     public Post[] getAllUsersPosts(){
-        return super.get(getEndPoint(EndPoint.PUBLIC, EndPoint.V2, EndPoint.POSTS)).as(Post[].class);
+        return super.get(getEndPoint(EndPoint.PUBLIC, EndPoint.V2, EndPoint.POSTS))
+                .then()
+                .log().all() // Это покажет в консоли, что пришло от сервера
+                .extract()
+                .as(Post[].class);
     }
 
     public Post[] getUserPostsById(Integer id){ //    /public/v2/users/8409614/posts

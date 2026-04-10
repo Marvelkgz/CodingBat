@@ -16,12 +16,11 @@ import java.util.Random;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-
+@Tag("API")
 @Slf4j
 public class EndToEndTest extends BaseGorestTest {
 
     private static final String CSV_PATH = "src/main/resources/users_data.csv";
-    @Tag("API")
     @Test
     @DisplayName("E2E: create user → create post → create comment → create todo → delete user")
     void shouldPerformFullUserWorkflowFromCreationToDeletion() {
@@ -47,13 +46,13 @@ public class EndToEndTest extends BaseGorestTest {
                 .status("pending").build();
         toDoController.createUserToDo(toDo, id);
     }
-    @Tag("API")
+    
     @Test
     void exportAllUsersToCsv() {
         List<User> users = Arrays.asList(userController.getAllUsers());
         CsvUtils.writeUsersToCsv(users, CSV_PATH);
     }
-    @Tag("API")
+    
     @Test
     void shouldGetRandomUserFromCsv() {
         // взять рандомного пользователя целиком
@@ -65,7 +64,7 @@ public class EndToEndTest extends BaseGorestTest {
         assertThat(userController.getResponse().statusCode()).isEqualTo(200);
         assertThat(userById.getId()).isEqualTo(randomId);
     }
-    @Tag("API")
+    
     @Test
     void shouldGetAllUsersFromCsvAndPickRandom() {
         // взять всех и поработать со списком

@@ -8,13 +8,13 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
-
+@Tag("API")
 public class UsersTest extends BaseGorestTest{
 
     Integer idishka = 8421831;
     Integer newIdishka = 8421832;
     Integer post_id = 275331;
-    @Tag("API")
+    
     @Test
     void performFullCrudOperationsForUserTest() {
         userController.getAllUsers();
@@ -57,7 +57,7 @@ public class UsersTest extends BaseGorestTest{
 
         userController.deleteUser(id);
     }
-    @Tag("API")
+    
     @Test
     void postTest() {
         System.out.println("GET ALL USER'S POSTS: " + Arrays.toString(postController.getAllUsersPosts()));
@@ -70,7 +70,7 @@ public class UsersTest extends BaseGorestTest{
 
 //        postController.deletePost(newIdishka);
     }
-    @Tag("API")
+    
     @Test
     void commentTest() {
         System.out.println("GET USER'S COMMENTS BY ID: " + Arrays.toString(commentController
@@ -81,7 +81,7 @@ public class UsersTest extends BaseGorestTest{
         Comment createdComment = commentController.createUserComments(comment, post_id);
         System.out.println("CREATE POST COMMENT: " + createdComment);
     }
-    @Tag("API")
+    
     @Test
     void toDoTest() {
         System.out.println("GET USER'S TODOS BY ID: " + Arrays.toString(toDoController.getUserToDosById(newIdishka)));
