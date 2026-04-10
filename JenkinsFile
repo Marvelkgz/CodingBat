@@ -187,8 +187,8 @@ h2{font-size:15px;margin-bottom:10px;}
                     string(credentialsId: 'telegram-chat-id',   variable: 'CHAT_ID')
                 ]) {
 
-                      def caption = "[${status}] ${jobName} Build #${buildNum} | ${suiteInfo}
-                      | ${duration} | Всего: ${total} ✅${passed} ❌${failed} ⏭${skipped}"
+                      def suiteShort = params.CUSTOM_TEST?.trim() ? "Test:${params.CUSTOM_TEST}" : "Suite:${params.TEST_SUITE}"
+                      def caption = "[${status}] ${jobName} #${buildNum} | ${suiteShort} | ${duration} | Total:${total} OK:${passed} FAIL:${failed} SKIP:${skipped}"
 
                       bat """
                           curl -k -s -X POST "https://api.telegram.org/bot%BOT_TOKEN%/sendPhoto" ^
