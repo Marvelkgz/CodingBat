@@ -114,9 +114,9 @@ Write-Output "PASSED=$passed;FAILED=$failed;SKIPPED=$skipped"
                 }
 
                 def total      = passed + failed + skipped
-                def passedPct  = total > 0 ? Math.round(passed  * 100.0 / total) : 0
-                def failedPct  = total > 0 ? Math.round(failed  * 100.0 / total) : 0
-                def skippedPct = total > 0 ? Math.round(skipped * 100.0 / total) : 0
+              def passedPct  = total > 0 ? (int)(passed  * 100 / total) : 0
+              def failedPct  = total > 0 ? (int)(failed  * 100 / total) : 0
+              def skippedPct = total > 0 ? (int)(skipped * 100 / total) : 0
 
                 // --- HTML график ---
                 def htmlChart = """<!DOCTYPE html>
